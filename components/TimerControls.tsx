@@ -1,5 +1,5 @@
 "use client";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 
 const RED = "#E8A0A0";
 const GREEN = "#A8D5A2";
@@ -9,10 +9,11 @@ interface Props {
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
+  onSkip: () => void;
   mode: "work" | "break";
 }
 
-export function TimerControls({ isRunning, onStart, onPause, onReset, mode }: Props) {
+export function TimerControls({ isRunning, onStart, onPause, onReset, onSkip, mode }: Props) {
   const accent = mode === "work" ? RED : GREEN;
 
   return (
@@ -40,6 +41,14 @@ export function TimerControls({ isRunning, onStart, onPause, onReset, mode }: Pr
         style={{ background: "#1a1a1a", color: "#ffffff", border: "none" }}
       >
         <RotateCcw size={14} /> Reset
+      </button>
+      <button
+        onClick={onSkip}
+        title={mode === "work" ? "Skip to break" : "Skip to work"}
+        className="flex items-center gap-1 px-4 py-2 rounded text-sm font-semibold transition-colors"
+        style={{ background: "transparent", color: "#1a1a1a", border: "1px solid rgba(0,0,0,0.18)" }}
+      >
+        <SkipForward size={14} />
       </button>
     </div>
   );

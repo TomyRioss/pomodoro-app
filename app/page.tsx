@@ -12,19 +12,22 @@ const RED = "#E8A0A0";
 const GREEN = "#A8D5A2";
 
 export default function Home() {
-  const { playAlarm } = useAlarm();
+  const { startAlarm, stopAlarm } = useAlarm();
   const {
     secondsLeft,
     mode,
     isRunning,
+    isPendingTransition,
     workDuration,
     breakDuration,
     start,
     pause,
     reset,
+    confirmTransition,
+    skipToNext,
     setWorkDuration,
     setBreakDuration,
-  } = useTimer(playAlarm);
+  } = useTimer({ startAlarm, stopAlarm });
 
   const pageBg = mode === "work" ? RED : GREEN;
 
@@ -34,12 +37,52 @@ export default function Home() {
     document.title = `${mins}:${secs} — Pomodoro`;
   }, [secondsLeft]);
 
+  useEffect(() => {
+    if (!isPendingTransition) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        confirmTransition();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isPendingTransition, confirmTransition]);
+
+  const nextMode = mode === "work" ? "break" : "work";
+  const nextLabel = nextMode === "break" ? "Iniciar descanso" : "Iniciar trabajo";
+
   return (
     <main
       className="flex flex-col items-center min-h-screen px-4 py-12 transition-colors duration-500"
       style={{ background: pageBg }}
     >
-      {/* Wrapper: relative so quote can escape to the right */}
+      {isPendingTransition && (
+        <div
+          className="fixed inset-0 flex flex-col items-center justify-center z-50"
+          style={{ background: "rgba(0,0,0,0.55)" }}
+        >
+          <div
+            className="flex flex-col items-center gap-6 px-12 py-10 rounded-xl"
+            style={{ background: "#fff", maxWidth: "360px", width: "90%" }}
+          >
+            <span className="text-2xl font-bold text-center" style={{ color: "#1a1a1a" }}>
+              {mode === "work" ? "¡Tiempo de trabajo completado!" : "¡Descanso terminado!"}
+            </span>
+            <button
+              onClick={confirmTransition}
+              className="w-full py-3 rounded-lg font-semibold text-base transition-colors"
+              style={{ background: nextMode === "break" ? GREEN : RED, color: "#1a1a1a", border: "none" }}
+            >
+              {nextLabel}
+            </button>
+            <span className="text-xs" style={{ color: "#999" }}>
+              o presioná <kbd style={{ background: "#f0f0f0", padding: "2px 6px", borderRadius: "4px", fontFamily: "monospace" }}>Space</kbd>
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="relative w-full max-w-md flex flex-col gap-6">
         <section
           className="flex flex-col items-center px-10 py-8 rounded-md"
@@ -51,6 +94,7 @@ export default function Home() {
             onStart={start}
             onPause={pause}
             onReset={reset}
+            onSkip={skipToNext}
             mode={mode}
           />
           <TimerConfig
@@ -68,7 +112,6 @@ export default function Home() {
           <TaskList />
         </section>
 
-        {/* Quote — anchored to right edge of timer wrapper */}
         <aside
           className="hidden lg:block absolute top-0"
           style={{ left: "calc(100% + 6rem)", width: "24rem", color: "#1a1a1a", top: "50%", transform: "translateY(-50%)", fontSize: "1.1rem", lineHeight: "1.7rem" }}
