@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import { useAlarm } from "@/hooks/useAlarm";
 import { useTimer } from "@/hooks/useTimer";
 import { TimerDisplay } from "@/components/TimerDisplay";
@@ -26,6 +27,12 @@ export default function Home() {
   } = useTimer(playAlarm);
 
   const pageBg = mode === "work" ? RED : GREEN;
+
+  useEffect(() => {
+    const mins = Math.floor(secondsLeft / 60).toString().padStart(2, "0");
+    const secs = (secondsLeft % 60).toString().padStart(2, "0");
+    document.title = `${mins}:${secs} — Pomodoro`;
+  }, [secondsLeft]);
 
   return (
     <main
