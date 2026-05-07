@@ -1,14 +1,17 @@
 "use client";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 
-export function useAlarm() {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const ctxRef = useRef<AudioContext | null>(null);
+export type AlarmTone = "sharp" | "gentle" | "bell" | "pulse";
 
-  const beep = useCallback(() => {
-    try {
-      const ctx = new AudioContext();
-      ctxRef.current = ctx;
+interface ToneConfig {
+  label: string;
+  play: (ctx: AudioContext) => void;
+}
+
+const TONES: Record<AlarmTone, ToneConfig> = {
+  sharp: {
+    label: "Sharp",
+    play(ctx) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -17,11 +20,81 @@ export function useAlarm() {
       osc.frequency.setValueAtTime(880, ctx.currentTime);
       osc.frequency.setValueAtTime(660, ctx.currentTime + 0.12);
       osc.frequency.setValueAtTime(880, ctx.currentTime + 0.24);
-      gain.gain.setValueAtTime(0.28, ctx.currentTime);
+      gain.gain.setValueAtTime(0.26, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.5);
       osc.onended = () => ctx.close();
+    },
+  },
+  gentle: {
+    label: "Gentle",
+    play(ctx) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(520, ctx.currentTime);
+      osc.frequency.setValueAtTime(440, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.9);
+      osc.onended = () => ctx.close();
+    },
+  },
+  bell: {
+    label: "Bell",
+    play(ctx) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(1047, ctx.currentTime);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 1.4);
+      osc.onended = () => ctx.close();
+    },
+  },
+  pulse: {
+    label: "Pulse",
+    play(ctx) {
+      [0, 0.22, 0.44].forEach((offset) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(740, ctx.currentTime + offset);
+        gain.gain.setValueAtTime(0.22, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.18);
+        osc.onended = () => ctx.close();
+      });
+    },
+  },
+};
+
+export const ALARM_TONE_OPTIONS = (Object.keys(TONES) as AlarmTone[]).map((k) => ({
+  value: k,
+  label: TONES[k].label,
+}));
+
+export function useAlarm() {
+  const [tone, setTone] = useState<AlarmTone>("sharp");
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const toneRef = useRef<AlarmTone>(tone);
+  toneRef.current = tone;
+
+  const beep = useCallback(() => {
+    try {
+      const ctx = new AudioContext();
+      TONES[toneRef.current].play(ctx);
     } catch {
       // Web Audio not available
     }
@@ -39,5 +112,5 @@ export function useAlarm() {
     }
   }, []);
 
-  return { startAlarm, stopAlarm };
+  return { startAlarm, stopAlarm, tone, setTone };
 }

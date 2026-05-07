@@ -12,7 +12,7 @@ const RED = "#E8A0A0";
 const GREEN = "#A8D5A2";
 
 export default function Home() {
-  const { startAlarm, stopAlarm } = useAlarm();
+  const { startAlarm, stopAlarm, tone, setTone } = useAlarm();
   const {
     secondsLeft,
     mode,
@@ -102,6 +102,9 @@ export default function Home() {
             breakDuration={breakDuration}
             onSetWork={setWorkDuration}
             onSetBreak={setBreakDuration}
+            tone={tone}
+            onSetTone={setTone}
+            onPreviewTone={startAlarm}
           />
         </section>
 
