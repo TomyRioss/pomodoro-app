@@ -41,7 +41,7 @@ export function TimerConfig({
       <Separator className="mb-3" />
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-1.5 mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
       >
         <Settings size={12} />
         Settings

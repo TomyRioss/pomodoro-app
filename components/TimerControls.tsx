@@ -23,7 +23,7 @@ export function TimerControls({ isRunning, onStart, onPause, onReset, onSkip, mo
       <Tooltip>
         <TooltipTrigger
           onClick={isRunning ? onPause : onStart}
-          className="flex items-center gap-2 px-7 py-2.5 rounded-full font-semibold text-sm transition-all active:scale-95 shadow-sm cursor-pointer"
+          className="flex items-center gap-2 px-7 py-2.5 rounded-full font-semibold text-sm transition-all active:scale-95 shadow-sm cursor-pointer hover:brightness-95"
           style={{ background: accent, color: "#1a1a1a", border: "none" }}
         >
           {isRunning ? <Pause size={15} /> : <Play size={15} />}

@@ -27,7 +27,7 @@ export function SessionCounter({ sessions, onDelete, onReset }: Props) {
           {count > 0 && (
             <button
               onClick={onReset}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               title="Reset sessions"
             >
               <Trash2 size={12} />
@@ -45,7 +45,7 @@ export function SessionCounter({ sessions, onDelete, onReset }: Props) {
               key={id}
               onClick={() => onDelete(id)}
               title={`Session ${idx + 1} — click to remove`}
-              className="w-6 h-6 rounded-full transition-transform hover:scale-110 active:scale-95"
+              className="w-6 h-6 rounded-full transition-transform hover:scale-110 active:scale-95 cursor-pointer"
               style={{ background: RED, border: "none" }}
             />
           ))}

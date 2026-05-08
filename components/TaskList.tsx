@@ -74,7 +74,7 @@ export function TaskList() {
             >
               <button
                 onClick={() => toggleTask(task.id)}
-                className="flex-shrink-0 transition-colors"
+                className="flex-shrink-0 transition-colors cursor-pointer"
                 style={{ color: task.done ? "#4a8a45" : "#aaa" }}
               >
                 {task.done ? <CheckCircle2 size={16} /> : <Circle size={16} />}
@@ -91,7 +91,7 @@ export function TaskList() {
               <span className="text-xs font-mono text-muted-foreground">{task.estimatedMinutes}m</span>
               <button
                 onClick={() => removeTask(task.id)}
-                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 <X size={13} />
               </button>
