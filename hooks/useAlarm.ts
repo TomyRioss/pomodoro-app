@@ -112,5 +112,7 @@ export function useAlarm() {
     }
   }, []);
 
-  return { startAlarm, stopAlarm, tone, setTone };
+  const previewTone = useCallback(() => beep(), [beep]);
+
+  return { startAlarm, stopAlarm, previewTone, tone, setTone };
 }

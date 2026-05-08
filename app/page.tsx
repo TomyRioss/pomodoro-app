@@ -33,7 +33,7 @@ export default function Home() {
 
   const resetSessions = useCallback(() => setSessions([]), []);
 
-  const { startAlarm, stopAlarm, tone, setTone } = useAlarm();
+  const { startAlarm, stopAlarm, previewTone, tone, setTone } = useAlarm();
   const {
     secondsLeft,
     mode,
@@ -125,7 +125,7 @@ export default function Home() {
             onSetBreak={setBreakDuration}
             tone={tone}
             onSetTone={setTone}
-            onPreviewTone={startAlarm}
+            onPreviewTone={previewTone}
           />
         </div>
 
