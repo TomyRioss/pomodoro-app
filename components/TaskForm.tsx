@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const RED = "#E8A0A0";
 
@@ -23,42 +25,36 @@ export function TaskForm({ onAdd }: Props) {
     const trimmed = name.trim();
     const mins = parseInt(minutes, 10);
     if (!trimmed || isNaN(mins) || mins < 1) return;
-    onAdd({
-      id: crypto.randomUUID(),
-      name: trimmed,
-      estimatedMinutes: mins,
-      done: false,
-    });
+    onAdd({ id: crypto.randomUUID(), name: trimmed, estimatedMinutes: mins, done: false });
     setName("");
     setMinutes("25");
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 mt-2">
+    <form onSubmit={handleSubmit} className="flex gap-2">
       <input
         type="text"
-        placeholder="Task name"
+        placeholder="Add a task…"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="flex-1 px-3 py-1.5 rounded-sm border text-sm"
-        style={{ borderColor: "rgba(0,0,0,0.15)", background: "#ffffff", color: "#1a1a1a" }}
+        className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
       />
       <input
         type="number"
         min={1}
         value={minutes}
         onChange={(e) => setMinutes(e.target.value)}
-        className="w-16 px-2 py-1.5 rounded-sm border text-center text-sm font-mono"
-        style={{ borderColor: "rgba(0,0,0,0.15)", background: "#ffffff", color: "#1a1a1a" }}
+        className="w-16 px-2 py-2 rounded-lg border border-border bg-background text-center text-sm font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         title="Estimated minutes"
       />
-      <button
+      <Button
         type="submit"
-        className="px-4 py-1.5 rounded font-semibold text-sm"
+        size="sm"
+        className="rounded-lg px-3 font-semibold"
         style={{ background: RED, color: "#1a1a1a", border: "none" }}
       >
-        Add
-      </button>
+        <Plus size={15} />
+      </Button>
     </form>
   );
 }

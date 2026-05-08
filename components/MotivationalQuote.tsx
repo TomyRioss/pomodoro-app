@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const CACHE_KEY = "pomodoro-quote";
 const CACHE_TTL = 6 * 60 * 60 * 1000;
@@ -23,15 +24,21 @@ export function MotivationalQuote() {
             return;
           }
         }
-      } catch {}
+      } catch (err) {
+        console.error("Quote cache read failed:", err);
+      }
 
       try {
         const res = await fetch("/api/quote");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const q = data[0] as Quote;
         localStorage.setItem(CACHE_KEY, JSON.stringify({ quote: q, ts: Date.now() }));
         setQuote(q);
-      } catch {}
+      } catch (err) {
+        console.error("Quote fetch failed:", err);
+        toast.error("Could not load quote.");
+      }
     }
     load();
   }, []);
@@ -39,13 +46,11 @@ export function MotivationalQuote() {
   if (!quote) return null;
 
   return (
-    <div className="flex flex-col gap-3 h-full justify-center">
-      <p className="italic" style={{ color: "#1a1a1a" }}>
+    <div className="flex flex-col gap-1 text-center px-2 py-4">
+      <p className="text-xs italic text-muted-foreground leading-relaxed">
         &ldquo;{quote.q}&rdquo;
       </p>
-      <p className="font-semibold mt-4" style={{ color: "#1a1a1a" }}>
-        — {quote.a}
-      </p>
+      <p className="text-xs font-medium text-muted-foreground">— {quote.a}</p>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAlarm } from "@/hooks/useAlarm";
 import { useTimer } from "@/hooks/useTimer";
 import { TimerDisplay } from "@/components/TimerDisplay";
@@ -7,11 +7,31 @@ import { TimerControls } from "@/components/TimerControls";
 import { TimerConfig } from "@/components/TimerConfig";
 import { TaskList } from "@/components/TaskList";
 import { MotivationalQuote } from "@/components/MotivationalQuote";
+import { SessionCounter } from "@/components/SessionCounter";
+import { Separator } from "@/components/ui/separator";
 
 const RED = "#E8A0A0";
 const GREEN = "#A8D5A2";
 
 export default function Home() {
+  const [sessions, setSessions] = useState<number[]>([]);
+  const pendingWorkRef = useRef(false);
+
+  const onPhaseComplete = useCallback((phase: "work" | "break") => {
+    if (phase === "work") {
+      pendingWorkRef.current = true;
+    } else if (phase === "break" && pendingWorkRef.current) {
+      pendingWorkRef.current = false;
+      setSessions((prev) => [...prev, Date.now()]);
+    }
+  }, []);
+
+  const deleteSession = useCallback((id: number) => {
+    setSessions((prev) => prev.filter((s) => s !== id));
+  }, []);
+
+  const resetSessions = useCallback(() => setSessions([]), []);
+
   const { startAlarm, stopAlarm, tone, setTone } = useAlarm();
   const {
     secondsLeft,
@@ -27,9 +47,12 @@ export default function Home() {
     skipToNext,
     setWorkDuration,
     setBreakDuration,
-  } = useTimer({ startAlarm, stopAlarm });
+  } = useTimer({ startAlarm, stopAlarm, onPhaseComplete });
 
-  const pageBg = mode === "work" ? RED : GREEN;
+  const totalSeconds = mode === "work" ? workDuration * 60 : breakDuration * 60;
+  const nextMode = mode === "work" ? "break" : "work";
+  const nextAccent = nextMode === "break" ? GREEN : RED;
+  const nextLabel = nextMode === "break" ? "Start Break" : "Start Work";
 
   useEffect(() => {
     const mins = Math.floor(secondsLeft / 60).toString().padStart(2, "0");
@@ -40,55 +63,52 @@ export default function Home() {
   useEffect(() => {
     if (!isPendingTransition) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
-        e.preventDefault();
-        confirmTransition();
-      }
+      if (e.code === "Space") { e.preventDefault(); confirmTransition(); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [isPendingTransition, confirmTransition]);
 
-  const nextMode = mode === "work" ? "break" : "work";
-  const nextLabel = nextMode === "break" ? "Iniciar descanso" : "Iniciar trabajo";
+  useEffect(() => {
+    if (isPendingTransition) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.code === "Space" && (e.target as HTMLElement).tagName !== "INPUT") {
+        e.preventDefault();
+        isRunning ? pause() : start();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isPendingTransition, isRunning, start, pause]);
 
   return (
     <main
-      className="flex flex-col items-center min-h-screen px-4 py-12 transition-colors duration-500"
-      style={{ background: pageBg }}
+      className="min-h-screen transition-colors duration-700 px-4 py-10"
+      style={{ background: mode === "work" ? `${RED}55` : `${GREEN}55` }}
     >
       {isPendingTransition && (
-        <div
-          className="fixed inset-0 flex flex-col items-center justify-center z-50"
-          style={{ background: "rgba(0,0,0,0.55)" }}
-        >
-          <div
-            className="flex flex-col items-center gap-6 px-12 py-10 rounded-xl"
-            style={{ background: "#fff", maxWidth: "360px", width: "90%" }}
-          >
-            <span className="text-2xl font-bold text-center" style={{ color: "#1a1a1a" }}>
-              {mode === "work" ? "¡Tiempo de trabajo completado!" : "¡Descanso terminado!"}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-5 px-10 py-8 rounded-2xl bg-white shadow-xl max-w-xs w-full mx-4">
+            <span className="text-lg font-bold text-center text-[#1a1a1a]">
+              {mode === "work" ? "Focus session complete!" : "Break time over!"}
             </span>
             <button
               onClick={confirmTransition}
-              className="w-full py-3 rounded-lg font-semibold text-base transition-colors"
-              style={{ background: nextMode === "break" ? GREEN : RED, color: "#1a1a1a", border: "none" }}
+              className="w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-95"
+              style={{ background: nextAccent, color: "#1a1a1a", border: "none" }}
             >
               {nextLabel}
             </button>
-            <span className="text-xs" style={{ color: "#999" }}>
-              o presioná <kbd style={{ background: "#f0f0f0", padding: "2px 6px", borderRadius: "4px", fontFamily: "monospace" }}>Space</kbd>
+            <span className="text-xs text-[#aaa]">
+              or press <kbd className="bg-[#f0f0f0] px-1.5 py-0.5 rounded font-mono text-[10px]">Space</kbd>
             </span>
           </div>
         </div>
       )}
 
-      <div className="relative w-full max-w-md flex flex-col gap-6">
-        <section
-          className="flex flex-col items-center px-10 py-8 rounded-md"
-          style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.08)" }}
-        >
-          <TimerDisplay secondsLeft={secondsLeft} mode={mode} />
+      <div className="max-w-md mx-auto flex flex-col gap-4">
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-white/60 px-6 py-4">
+          <TimerDisplay secondsLeft={secondsLeft} totalSeconds={totalSeconds} mode={mode} />
           <TimerControls
             isRunning={isRunning}
             onStart={start}
@@ -106,21 +126,22 @@ export default function Home() {
             onSetTone={setTone}
             onPreviewTone={startAlarm}
           />
-        </section>
+        </div>
 
-        <section
-          className="px-6 py-6 rounded-md"
-          style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.08)" }}
-        >
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-white/60 px-6 py-5">
           <TaskList />
-        </section>
+        </div>
 
-        <aside
-          className="hidden lg:block absolute top-0"
-          style={{ left: "calc(100% + 6rem)", width: "24rem", color: "#1a1a1a", top: "50%", transform: "translateY(-50%)", fontSize: "1.1rem", lineHeight: "1.7rem" }}
-        >
-          <MotivationalQuote />
-        </aside>
+        <div className="rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-white/60 px-6 py-5">
+          <SessionCounter
+            sessions={sessions}
+            onDelete={deleteSession}
+            onReset={resetSessions}
+          />
+        </div>
+
+        <Separator className="opacity-30" />
+        <MotivationalQuote />
       </div>
     </main>
   );

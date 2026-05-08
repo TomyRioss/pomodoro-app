@@ -1,5 +1,7 @@
 "use client";
 import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const RED = "#E8A0A0";
 const GREEN = "#A8D5A2";
@@ -17,39 +19,46 @@ export function TimerControls({ isRunning, onStart, onPause, onReset, onSkip, mo
   const accent = mode === "work" ? RED : GREEN;
 
   return (
-    <div className="flex gap-3 mt-6">
-      {isRunning ? (
-        <button
-          onClick={onPause}
-          className="flex items-center gap-2 px-6 py-2 rounded font-semibold text-sm transition-colors"
+    <div className="flex items-center gap-3 justify-center pb-2">
+      <Tooltip>
+        <TooltipTrigger
+          onClick={isRunning ? onPause : onStart}
+          className="flex items-center gap-2 px-7 py-2.5 rounded-full font-semibold text-sm transition-all active:scale-95 shadow-sm cursor-pointer"
           style={{ background: accent, color: "#1a1a1a", border: "none" }}
         >
-          <Pause size={15} /> Pause
-        </button>
-      ) : (
-        <button
-          onClick={onStart}
-          className="flex items-center gap-2 px-6 py-2 rounded font-semibold text-sm transition-colors"
-          style={{ background: accent, color: "#1a1a1a", border: "none" }}
-        >
-          <Play size={15} /> Start
-        </button>
-      )}
-      <button
-        onClick={onReset}
-        className="flex items-center gap-2 px-5 py-2 rounded text-sm font-semibold transition-colors"
-        style={{ background: "#1a1a1a", color: "#ffffff", border: "none" }}
-      >
-        <RotateCcw size={14} /> Reset
-      </button>
-      <button
-        onClick={onSkip}
-        title={mode === "work" ? "Skip to break" : "Skip to work"}
-        className="flex items-center gap-1 px-4 py-2 rounded text-sm font-semibold transition-colors"
-        style={{ background: "transparent", color: "#1a1a1a", border: "1px solid rgba(0,0,0,0.18)" }}
-      >
-        <SkipForward size={14} />
-      </button>
+          {isRunning ? <Pause size={15} /> : <Play size={15} />}
+          {isRunning ? "Pause" : "Start"}
+        </TooltipTrigger>
+        <TooltipContent>{isRunning ? "Pause timer" : "Start timer"}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger render={<span />}>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onReset}
+            className="rounded-full h-9 w-9"
+          >
+            <RotateCcw size={14} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Reset</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger render={<span />}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onSkip}
+            className="rounded-full h-9 w-9"
+          >
+            <SkipForward size={14} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{mode === "work" ? "Skip to break" : "Skip to work"}</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

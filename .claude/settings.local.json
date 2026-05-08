@@ -17,7 +17,12 @@
       "Bash(git commit *)",
       "Bash(git branch *)",
       "Bash(git remote *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npx tsc *)",
+      "Bash(npx shadcn@latest init -y)",
+      "Bash(npx shadcn@latest init --defaults)",
+      "Bash(npx shadcn@latest add badge card separator tooltip)",
+      "Bash(npm run *)"
     ]
   }
 }
