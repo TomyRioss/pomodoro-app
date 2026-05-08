@@ -10,6 +10,7 @@ import { MotivationalQuote } from "@/components/MotivationalQuote";
 import { SessionCounter } from "@/components/SessionCounter";
 import { Separator } from "@/components/ui/separator";
 
+const RED_BG = "#C0392B";
 const RED = "#E8A0A0";
 const GREEN = "#A8D5A2";
 
@@ -84,7 +85,7 @@ export default function Home() {
   return (
     <main
       className="min-h-screen transition-colors duration-700 px-4 py-10"
-      style={{ background: mode === "work" ? `${RED}55` : `${GREEN}55` }}
+      style={{ background: mode === "work" ? `${RED_BG}55` : `${GREEN}55` }}
     >
       {isPendingTransition && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">

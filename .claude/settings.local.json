@@ -22,7 +22,9 @@
       "Bash(npx shadcn@latest init -y)",
       "Bash(npx shadcn@latest init --defaults)",
       "Bash(npx shadcn@latest add badge card separator tooltip)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(xargs sed -i 's/E8A0A0/C0392B/g')",
+      "Bash(xargs sed -i 's/#E8A0A0/#C0392B/g')"
     ]
   }
 }
