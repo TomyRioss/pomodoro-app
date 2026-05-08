@@ -125,7 +125,8 @@ export default function Home() {
             onSetBreak={setBreakDuration}
             tone={tone}
             onSetTone={setTone}
-            onPreviewTone={previewTone}
+            onPreviewTone={startAlarm}
+            onStopTone={stopAlarm}
           />
         </div>
 

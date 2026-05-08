@@ -15,14 +15,16 @@ interface Props {
   tone: AlarmTone;
   onSetTone: (t: AlarmTone) => void;
   onPreviewTone: () => void;
+  onStopTone: () => void;
 }
 
 export function TimerConfig({
-  workDuration, breakDuration, onSetWork, onSetBreak, tone, onSetTone, onPreviewTone,
+  workDuration, breakDuration, onSetWork, onSetBreak, tone, onSetTone, onPreviewTone, onStopTone,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [workInput, setWorkInput] = useState(String(workDuration));
   const [breakInput, setBreakInput] = useState(String(breakDuration));
+  const [previewing, setPreviewing] = useState(false);
 
   function handleWorkBlur() {
     const val = parseInt(workInput, 10);
@@ -34,6 +36,16 @@ export function TimerConfig({
     const val = parseInt(breakInput, 10);
     if (!isNaN(val) && val >= 1) onSetBreak(val);
     else setBreakInput(String(breakDuration));
+  }
+
+  function togglePreview() {
+    if (previewing) {
+      onStopTone();
+      setPreviewing(false);
+    } else {
+      onPreviewTone();
+      setPreviewing(true);
+    }
   }
 
   return (
@@ -82,18 +94,18 @@ export function TimerConfig({
             <Volume2 size={13} className="text-muted-foreground" />
             <select
               value={tone}
-              onChange={(e) => onSetTone(e.target.value as AlarmTone)}
-              className="px-2 py-1 rounded border font-mono text-xs bg-background border-border text-foreground"
+              onChange={(e) => { onStopTone(); setPreviewing(false); onSetTone(e.target.value as AlarmTone); }}
+              className="px-2 py-1 rounded border font-mono text-xs bg-background border-border text-foreground cursor-pointer"
             >
               {ALARM_TONE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
             <button
-              onClick={onPreviewTone}
-              className="px-2.5 py-1 rounded text-xs border border-border hover:bg-muted transition-colors"
+              onClick={togglePreview}
+              className="px-2.5 py-1 rounded text-xs border border-border hover:bg-muted transition-colors cursor-pointer"
             >
-              ▶
+              {previewing ? "⏸" : "▶"}
             </button>
           </div>
         </div>
