@@ -6,12 +6,28 @@ import { TaskForm, type Task } from "./TaskForm";
 
 const GREEN = "#A8D5A2";
 const STORAGE_KEY = "pomodoro-tasks";
+const RESET_DAY_KEY = "pomodoro-tasks-reset-day";
+const RESET_HOUR = 4; // tasks reset daily at 4am local time
+
+function currentResetDay(): string {
+  const d = new Date(Date.now() - RESET_HOUR * 60 * 60 * 1000);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
 
 function loadTasks(): Task[] {
   if (typeof window === "undefined") return [];
   try {
+    const today = currentResetDay();
+    const lastDay = localStorage.getItem(RESET_DAY_KEY);
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Task[]) : [];
+    const tasks: Task[] = raw ? (JSON.parse(raw) as Task[]) : [];
+    if (lastDay !== today) {
+      localStorage.setItem(RESET_DAY_KEY, today);
+      const reset = tasks.map((t) => ({ ...t, done: false }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(reset));
+      return reset;
+    }
+    return tasks;
   } catch (err) {
     console.error("Failed to load tasks:", err);
     toast.error("Could not load saved tasks.");
