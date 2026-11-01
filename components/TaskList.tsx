@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { X, CheckCircle2, Circle } from "lucide-react";
+import { X, CheckCircle2, Circle, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
 import { TaskForm, type Task } from "./TaskForm";
 
@@ -37,18 +37,22 @@ function loadTasks(): Task[] {
 
 export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   useEffect(() => {
     setTasks(loadTasks());
   }, []);
 
-  function save(updated: Task[]) {
+  function save(updated: Task[]): boolean {
     try {
-      setTasks(updated);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      setTasks(updated);
+      return true;
     } catch (err) {
       console.error("Failed to save tasks:", err);
       toast.error("Could not save tasks.");
+      return false;
     }
   }
 
@@ -62,6 +66,27 @@ export function TaskList() {
 
   function removeTask(id: string) {
     save(tasks.filter((t) => t.id !== id));
+  }
+
+  function startEditing(task: Task) {
+    setEditingTaskId(task.id);
+    setEditingName(task.name);
+  }
+
+  function cancelEditing() {
+    setEditingTaskId(null);
+    setEditingName("");
+  }
+
+  function saveTaskName(id: string) {
+    const name = editingName.trim();
+    if (!name) {
+      toast.error("Task name cannot be empty.");
+      return;
+    }
+    if (save(tasks.map((task) => (task.id === id ? { ...task, name } : task)))) {
+      cancelEditing();
+    }
   }
 
   const done = tasks.filter((t) => t.done).length;
@@ -95,22 +120,76 @@ export function TaskList() {
               >
                 {task.done ? <CheckCircle2 size={16} /> : <Circle size={16} />}
               </button>
-              <span
-                className="flex-1 text-sm"
-                style={{
-                  color: task.done ? "#6b7280" : "#1a1a1a",
-                  textDecoration: task.done ? "line-through" : "none",
-                }}
-              >
-                {task.name}
-              </span>
+              {editingTaskId === task.id ? (
+                <input
+                  autoFocus
+                  aria-label="Task name"
+                  value={editingName}
+                  onChange={(event) => setEditingName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      saveTaskName(task.id);
+                    }
+                    if (event.key === "Escape") cancelEditing();
+                  }}
+                  className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              ) : (
+                <span
+                  className="min-w-0 flex-1 text-sm"
+                  style={{
+                    color: task.done ? "#6b7280" : "#1a1a1a",
+                    textDecoration: task.done ? "line-through" : "none",
+                  }}
+                >
+                  {task.name}
+                </span>
+              )}
               <span className="text-xs font-mono text-muted-foreground">{task.estimatedMinutes}m</span>
-              <button
-                onClick={() => removeTask(task.id)}
-                className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                <X size={13} />
-              </button>
+              {editingTaskId === task.id ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => saveTaskName(task.id)}
+                    aria-label="Save task name"
+                    title="Save task name"
+                    className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelEditing}
+                    aria-label="Cancel editing task name"
+                    title="Cancel"
+                    className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  >
+                    <X size={13} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startEditing(task)}
+                    aria-label={`Edit task name: ${task.name}`}
+                    title="Edit task name"
+                    className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeTask(task.id)}
+                    aria-label={`Delete task: ${task.name}`}
+                    title="Delete task"
+                    className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                  >
+                    <X size={13} />
+                  </button>
+                </>
+              )}
             </li>
           ))}
         </ul>

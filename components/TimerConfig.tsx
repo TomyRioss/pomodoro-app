@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Settings, Volume2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { type AlarmTone, ALARM_TONE_OPTIONS } from "@/hooks/useAlarm";
@@ -25,6 +25,9 @@ export function TimerConfig({
   const [workInput, setWorkInput] = useState(String(workDuration));
   const [breakInput, setBreakInput] = useState(String(breakDuration));
   const [previewing, setPreviewing] = useState(false);
+
+  useEffect(() => setWorkInput(String(workDuration)), [workDuration]);
+  useEffect(() => setBreakInput(String(breakDuration)), [breakDuration]);
 
   function handleWorkBlur() {
     const val = parseInt(workInput, 10);

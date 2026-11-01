@@ -28,9 +28,21 @@ interface AlarmControls {
   onPhaseComplete?: (phase: "work" | "break") => void;
 }
 
+function loadInt(key: string, fallback: number): number {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const v = localStorage.getItem(key);
+    const n = v !== null ? parseInt(v, 10) : NaN;
+    return isNaN(n) || n < 1 ? fallback : n;
+  } catch {
+    return fallback;
+  }
+}
+
 export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmControls): TimerState & TimerActions {
   const [workDuration, setWorkDurationState] = useState(25);
   const [breakDuration, setBreakDurationState] = useState(5);
+  const [durationsLoaded, setDurationsLoaded] = useState(false);
   const [mode, setMode] = useState<Mode>("work");
   const [isRunning, setIsRunning] = useState(false);
   const [isPendingTransition, setIsPendingTransition] = useState(false);
@@ -43,6 +55,27 @@ export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmContro
   const breakDurationRef = useRef(breakDuration);
   workDurationRef.current = workDuration;
   breakDurationRef.current = breakDuration;
+
+  useEffect(() => {
+    const savedWorkDuration = loadInt("pomo_work", 25);
+    const savedBreakDuration = loadInt("pomo_break", 5);
+    const initialSeconds = savedWorkDuration * 60;
+    setWorkDurationState(savedWorkDuration);
+    setBreakDurationState(savedBreakDuration);
+    secondsLeftRef.current = initialSeconds;
+    setSecondsLeft(initialSeconds);
+    setDurationsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!durationsLoaded) return;
+    try {
+      localStorage.setItem("pomo_work", String(workDuration));
+      localStorage.setItem("pomo_break", String(breakDuration));
+    } catch (err) {
+      console.error("Failed to save timer durations:", err);
+    }
+  }, [durationsLoaded, workDuration, breakDuration]);
 
   const workerRef = useRef<Worker | null>(null);
 
