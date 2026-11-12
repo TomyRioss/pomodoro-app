@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAlarm } from "@/hooks/useAlarm";
 import { useTimer } from "@/hooks/useTimer";
+import { useTasks } from "@/hooks/useTasks";
 import { TimerDisplay } from "@/components/TimerDisplay";
 import { TimerControls } from "@/components/TimerControls";
 import { TimerConfig } from "@/components/TimerConfig";
@@ -33,6 +34,7 @@ export default function Home() {
 
   const resetSessions = useCallback(() => setSessions([]), []);
 
+  const { tasks, addTask, toggleTask, removeTask, renameTask, reorderTasks, addWorkedSeconds, getNextTaskMinutes } = useTasks();
   const { startAlarm, stopAlarm, previewTone, tone, setTone } = useAlarm();
   const {
     secondsLeft,
@@ -41,6 +43,7 @@ export default function Home() {
     isPendingTransition,
     workDuration,
     breakDuration,
+    workPhaseSeconds,
     start,
     pause,
     reset,
@@ -48,9 +51,17 @@ export default function Home() {
     skipToNext,
     setWorkDuration,
     setBreakDuration,
-  } = useTimer({ startAlarm, stopAlarm, onPhaseComplete });
+  } = useTimer({ startAlarm, stopAlarm, onPhaseComplete, getNextWorkMinutes: getNextTaskMinutes });
 
-  const totalSeconds = mode === "work" ? workDuration * 60 : breakDuration * 60;
+  // Spend elapsed work seconds on pending tasks, top to bottom.
+  const lastSecondsRef = useRef(secondsLeft);
+  useEffect(() => {
+    const elapsed = lastSecondsRef.current - secondsLeft;
+    lastSecondsRef.current = secondsLeft;
+    if (mode === "work" && isRunning && elapsed > 0) addWorkedSeconds(elapsed);
+  }, [secondsLeft, mode, isRunning, addWorkedSeconds]);
+
+  const totalSeconds = mode === "work" ? workPhaseSeconds : breakDuration * 60;
   const nextMode = mode === "work" ? "break" : "work";
   const nextAccent = nextMode === "break" ? GREEN : RED;
   const nextLabel = nextMode === "break" ? "Start Break" : "Start Work";
@@ -131,7 +142,14 @@ export default function Home() {
         </div>
 
         <div className="rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-white/60 px-6 py-5">
-          <TaskList />
+          <TaskList
+            tasks={tasks}
+            onAdd={addTask}
+            onToggle={toggleTask}
+            onRemove={removeTask}
+            onRename={renameTask}
+            onReorder={reorderTasks}
+          />
         </div>
 
         <div className="rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm border border-white/60 px-6 py-5">

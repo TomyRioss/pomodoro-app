@@ -10,6 +10,7 @@ export interface Task {
   name: string;
   estimatedMinutes: number;
   done: boolean;
+  workedSeconds: number;
 }
 
 interface Props {
@@ -25,7 +26,7 @@ export function TaskForm({ onAdd }: Props) {
     const trimmed = name.trim();
     const mins = parseInt(minutes, 10);
     if (!trimmed || isNaN(mins) || mins < 1) return;
-    onAdd({ id: crypto.randomUUID(), name: trimmed, estimatedMinutes: mins, done: false });
+    onAdd({ id: crypto.randomUUID(), name: trimmed, estimatedMinutes: mins, done: false, workedSeconds: 0 });
     setName("");
     setMinutes("25");
   }

@@ -10,6 +10,7 @@ export interface TimerState {
   isPendingTransition: boolean;
   workDuration: number;
   breakDuration: number;
+  workPhaseSeconds: number;
 }
 
 export interface TimerActions {
@@ -26,6 +27,8 @@ interface AlarmControls {
   startAlarm: () => void;
   stopAlarm: () => void;
   onPhaseComplete?: (phase: "work" | "break") => void;
+  /** Minutes for the next work phase (e.g. pending task remaining); null falls back to workDuration. */
+  getNextWorkMinutes?: () => number | null;
 }
 
 function loadInt(key: string, fallback: number): number {
@@ -39,7 +42,7 @@ function loadInt(key: string, fallback: number): number {
   }
 }
 
-export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmControls): TimerState & TimerActions {
+export function useTimer({ startAlarm, stopAlarm, onPhaseComplete, getNextWorkMinutes }: AlarmControls): TimerState & TimerActions {
   const [workDuration, setWorkDurationState] = useState(25);
   const [breakDuration, setBreakDurationState] = useState(5);
   const [durationsLoaded, setDurationsLoaded] = useState(false);
@@ -47,6 +50,7 @@ export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmContro
   const [isRunning, setIsRunning] = useState(false);
   const [isPendingTransition, setIsPendingTransition] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(25 * 60);
+  const [workPhaseSeconds, setWorkPhaseSeconds] = useState(25 * 60);
   const alarmFiredRef = useRef(false);
   const deadlineRef = useRef<number | null>(null);
   const secondsLeftRef = useRef(25 * 60);
@@ -64,6 +68,7 @@ export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmContro
     setBreakDurationState(savedBreakDuration);
     secondsLeftRef.current = initialSeconds;
     setSecondsLeft(initialSeconds);
+    setWorkPhaseSeconds(initialSeconds);
     setDurationsLoaded(true);
   }, []);
 
@@ -111,19 +116,25 @@ export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmContro
     }
   }, [secondsLeft, isRunning, startAlarm, onPhaseComplete, mode]);
 
+  const nextWorkSeconds = useCallback(() => {
+    const secs = (getNextWorkMinutes?.() ?? workDurationRef.current) * 60;
+    setWorkPhaseSeconds(secs);
+    return secs;
+  }, [getNextWorkMinutes]);
+
   const confirmTransition = useCallback(() => {
     stopAlarm();
     setIsPendingTransition(false);
     setMode((prev) => {
       const next: Mode = prev === "work" ? "break" : "work";
-      const secs = next === "work" ? workDurationRef.current * 60 : breakDurationRef.current * 60;
+      const secs = next === "work" ? nextWorkSeconds() : breakDurationRef.current * 60;
       secondsLeftRef.current = secs;
       deadlineRef.current = Date.now() + secs * 1000;
       setSecondsLeft(secs);
       return next;
     });
     setIsRunning(true);
-  }, [stopAlarm]);
+  }, [stopAlarm, nextWorkSeconds]);
 
   const skipToNext = useCallback(() => {
     stopAlarm();
@@ -133,12 +144,12 @@ export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmContro
     setIsPendingTransition(false);
     setMode((prev) => {
       const next: Mode = prev === "work" ? "break" : "work";
-      const secs = next === "work" ? workDurationRef.current * 60 : breakDurationRef.current * 60;
+      const secs = next === "work" ? nextWorkSeconds() : breakDurationRef.current * 60;
       secondsLeftRef.current = secs;
       setSecondsLeft(secs);
       return next;
     });
-  }, [stopAlarm]);
+  }, [stopAlarm, nextWorkSeconds]);
 
   const start = useCallback(() => setIsRunning(true), []);
   const pause = useCallback(() => { deadlineRef.current = null; setIsRunning(false); }, []);
@@ -153,6 +164,7 @@ export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmContro
     const secs = workDurationRef.current * 60;
     secondsLeftRef.current = secs;
     setSecondsLeft(secs);
+    setWorkPhaseSeconds(secs);
   }, [stopAlarm]);
 
   const setWorkDuration = useCallback((minutes: number) => {
@@ -168,6 +180,7 @@ export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmContro
     const secs = valid * 60;
     secondsLeftRef.current = secs;
     setSecondsLeft(secs);
+    setWorkPhaseSeconds(secs);
   }, [stopAlarm]);
 
   const setBreakDuration = useCallback((minutes: number) => {
@@ -183,6 +196,7 @@ export function useTimer({ startAlarm, stopAlarm, onPhaseComplete }: AlarmContro
     isPendingTransition,
     workDuration,
     breakDuration,
+    workPhaseSeconds,
     start,
     pause,
     reset,

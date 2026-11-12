@@ -1,92 +1,39 @@
 "use client";
-import { useState, useEffect } from "react";
-import { X, CheckCircle2, Circle, Pencil, Check } from "lucide-react";
-import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { TaskForm, type Task } from "./TaskForm";
+import { TaskItem } from "./TaskItem";
 
-const GREEN = "#A8D5A2";
-const STORAGE_KEY = "pomodoro-tasks";
-const RESET_DAY_KEY = "pomodoro-tasks-reset-day";
-const RESET_HOUR = 4; // tasks reset daily at 4am local time
-
-function currentResetDay(): string {
-  const d = new Date(Date.now() - RESET_HOUR * 60 * 60 * 1000);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+interface Props {
+  tasks: Task[];
+  onAdd: (task: Task) => void;
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void;
+  onRename: (id: string, name: string) => boolean;
+  onReorder: (tasks: Task[]) => void;
 }
 
-function loadTasks(): Task[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const today = currentResetDay();
-    const lastDay = localStorage.getItem(RESET_DAY_KEY);
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const tasks: Task[] = raw ? (JSON.parse(raw) as Task[]) : [];
-    if (lastDay !== today) {
-      localStorage.setItem(RESET_DAY_KEY, today);
-      const reset = tasks.map((t) => ({ ...t, done: false }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(reset));
-      return reset;
-    }
-    return tasks;
-  } catch (err) {
-    console.error("Failed to load tasks:", err);
-    toast.error("Could not load saved tasks.");
-    return [];
-  }
-}
+export function TaskList({ tasks, onAdd, onToggle, onRemove, onRename, onReorder }: Props) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
-export function TaskList() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-
-  useEffect(() => {
-    setTasks(loadTasks());
-  }, []);
-
-  function save(updated: Task[]): boolean {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      setTasks(updated);
-      return true;
-    } catch (err) {
-      console.error("Failed to save tasks:", err);
-      toast.error("Could not save tasks.");
-      return false;
-    }
-  }
-
-  function addTask(task: Task) {
-    save([...tasks, task]);
-  }
-
-  function toggleTask(id: string) {
-    save(tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
-  }
-
-  function removeTask(id: string) {
-    save(tasks.filter((t) => t.id !== id));
-  }
-
-  function startEditing(task: Task) {
-    setEditingTaskId(task.id);
-    setEditingName(task.name);
-  }
-
-  function cancelEditing() {
-    setEditingTaskId(null);
-    setEditingName("");
-  }
-
-  function saveTaskName(id: string) {
-    const name = editingName.trim();
-    if (!name) {
-      toast.error("Task name cannot be empty.");
-      return;
-    }
-    if (save(tasks.map((task) => (task.id === id ? { ...task, name } : task)))) {
-      cancelEditing();
-    }
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+    const from = tasks.findIndex((t) => t.id === active.id);
+    const to = tasks.findIndex((t) => t.id === over.id);
+    if (from !== -1 && to !== -1) onReorder(arrayMove(tasks, from, to));
   }
 
   const done = tasks.filter((t) => t.done).length;
@@ -100,103 +47,22 @@ export function TaskList() {
         )}
       </div>
 
-      <TaskForm onAdd={addTask} />
+      <TaskForm onAdd={onAdd} />
 
       {tasks.length > 0 && (
-        <ul className="flex flex-col gap-1.5 mt-1">
-          {tasks.map((task) => (
-            <li
-              key={task.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors"
-              style={{
-                background: task.done ? `${GREEN}33` : "transparent",
-                borderColor: task.done ? `${GREEN}88` : "rgba(0,0,0,0.08)",
-              }}
-            >
-              <button
-                onClick={() => toggleTask(task.id)}
-                className="flex-shrink-0 transition-colors cursor-pointer"
-                style={{ color: task.done ? "#4a8a45" : "#aaa" }}
-              >
-                {task.done ? <CheckCircle2 size={16} /> : <Circle size={16} />}
-              </button>
-              {editingTaskId === task.id ? (
-                <input
-                  autoFocus
-                  aria-label="Task name"
-                  value={editingName}
-                  onChange={(event) => setEditingName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      saveTaskName(task.id);
-                    }
-                    if (event.key === "Escape") cancelEditing();
-                  }}
-                  className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                />
-              ) : (
-                <span
-                  className="min-w-0 flex-1 text-sm"
-                  style={{
-                    color: task.done ? "#6b7280" : "#1a1a1a",
-                    textDecoration: task.done ? "line-through" : "none",
-                  }}
-                >
-                  {task.name}
-                </span>
-              )}
-              <span className="text-xs font-mono text-muted-foreground">{task.estimatedMinutes}m</span>
-              {editingTaskId === task.id ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => saveTaskName(task.id)}
-                    aria-label="Save task name"
-                    title="Save task name"
-                    className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                  >
-                    <Check size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelEditing}
-                    aria-label="Cancel editing task name"
-                    title="Cancel"
-                    className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                  >
-                    <X size={13} />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => startEditing(task)}
-                    aria-label={`Edit task name: ${task.name}`}
-                    title="Edit task name"
-                    className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                  >
-                    <Pencil size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeTask(task.id)}
-                    aria-label={`Delete task: ${task.name}`}
-                    title="Delete task"
-                    className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                  >
-                    <X size={13} />
-                  </button>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <ul className="flex flex-col gap-1.5 mt-1">
+              {tasks.map((task) => (
+                <TaskItem key={task.id} task={task} onToggle={onToggle} onRemove={onRemove} onRename={onRename} />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
 
       {tasks.length === 0 && (
-        <p className="text-xs text-center py-4 text-muted-foreground">No tasks yet — add one above</p>
+        <p className="text-xs text-center py-4 text-muted-foreground">No tasks yet, add one above</p>
       )}
     </div>
   );
